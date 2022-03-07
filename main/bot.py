@@ -1,6 +1,8 @@
 import discord
 import sqlite3
 import datetime
+import re
+import random
 
 print("starting bot...")
 client = discord.Client()
@@ -23,7 +25,6 @@ async def status_task():
 async def on_message(message):
 
     if message.author.bot:
-
         return
 
     if message.content == '%daily':
@@ -55,6 +56,7 @@ async def on_message(message):
             command = f"INSERT INTO daily VALUES({discordId}, 1, '{today}')"
             cur.execute(command)
             conn.commit()
+            lastDaily = yesterday
         else:
             userData = userData[0]
             streak = int(userData[1])
@@ -76,13 +78,82 @@ async def on_message(message):
 
         info = addMoney(discordId, streak_print, str(lastDaily))
 
-        logMsg = f"{message.author.name} --- %daily       current money = {info[0]} --- money added = {info[1]} --- id = {discordId}"
+        logMsg = f"{message.author.name} | {message.author.nick} | %daily | current money = {info[0]} | money added = {info[1]} | id = {discordId}"
         print(logMsg)
-        if info[1] == 0:
-            await message.channel.send("You can´t %daily twice!")
 
-        await message.channel.send(f"Current balance = {info[0]} : {message.author.name}")
-        await message.channel.send(f"daily streak = {streak_print}")
+        embedVar = discord.Embed(title=f"Daily!",
+                                 color=discord.Color.from_rgb(113, 235, 61),
+                                 description=f"{message.author.nick}: {info[0]} \nStreak: {streak_print}")
+        await message.channel.send(embed=embedVar)
+
+    if re.search("^%flip", message.content):
+        try:
+            amount = int(message.content[6::])
+            discordId = message.author.id
+
+            conn = sqlite3.connect("db.sql")
+            cur = conn.cursor()
+
+            command = f"SELECT * FROM userData WHERE id = '{discordId}'"
+            userRow = cur.execute(command).fetchall()[0]
+
+            currentMoney = userRow[1]
+            if int(amount) > int(currentMoney):
+                embedVar = discord.Embed(title=f"Not enough money!",
+                                         color=discord.Color.from_rgb(235, 64, 52),
+                                         description=f"Current balance = {currentMoney} : {message.author.nick}")
+                await message.channel.send(embed=embedVar)
+
+            elif int(amount) <= int(currentMoney) and int(amount) > 0:
+                flip = random.randint(0, 1)
+                if flip == 0:
+                    newMoney = int(currentMoney - amount)
+                    command = f"UPDATE userData SET money = '{newMoney}' WHERE id = '{discordId}'"
+                    embedVar = discord.Embed(title=f"LOSE - {message.author.nick}:",
+                                             color=discord.Color.from_rgb(235, 64, 52),
+                                             description=f"Balance: {newMoney}")
+                    await message.channel.send(embed=embedVar)
+
+
+                else:
+                    newMoney = int(currentMoney + amount)
+                    command = f"UPDATE userData SET money = '{newMoney}' WHERE id = '{discordId}'"
+                    embedVar = discord.Embed(title=f"WIN - {message.author.nick}:",
+                                             color=discord.Color.from_rgb(113, 235, 61),
+                                             description=f"Balance: {newMoney}")
+                    await message.channel.send(embed=embedVar)
+
+                cur.execute(command)
+                conn.commit()
+
+                logMsg = f"{message.author.name} | {message.author.nick} | %flip | current money = {currentMoney} | money added = {(newMoney - currentMoney)} | id = {discordId}"
+                print(logMsg)
+            elif int(amount) < 0:
+                embedVar = discord.Embed(title=f"NAAAHHHH :/",
+                                         color=discord.Color.from_rgb(235, 64, 52))
+                await message.channel.send(embed=embedVar)
+        except:
+            embedVar = discord.Embed(title=f"That´s not a number! :)",
+                                     color=discord.Color.from_rgb(86, 189, 230))
+            await message.channel.send(embed=embedVar)
+
+    if message.content == "%bal":
+        discordId = message.author.id
+        conn = sqlite3.connect("db.sql")
+        cur = conn.cursor()
+
+        command = f"SELECT * FROM userData WHERE id = '{discordId}'"
+        userRow = cur.execute(command).fetchall()[0]
+
+        currentMoney = userRow[1]
+
+        embedVar = discord.Embed(title=f"Balance - {message.author.nick}:",
+                                 color=discord.Color.from_rgb(86, 189, 230),
+                                 description=f"{currentMoney}")
+        await message.channel.send(embed=embedVar)
+
+        #await message.channel.send(f"Current balance: \n{currentMoney} : {message.author.nick}")
+
 
 def addMoney(discordId, streak, lastDaily):
     today = datetime.date.today()
