@@ -3,6 +3,7 @@ import sqlite3
 import datetime
 import re
 import random
+from key import *
 
 print("starting bot...")
 client = discord.Client()
@@ -88,7 +89,15 @@ async def on_message(message):
 
     if re.search("^%flip", message.content):
         try:
-            amount = int(message.content[6::])
+            coin = ["HEAD", "TAIL"]
+            flip = random.randint(0, 1)
+            if "%flip head" in message.content:
+                pick = 0
+
+            else:
+                pick = 1
+
+            amount = int(message.content[11::])
             discordId = message.author.id
 
             conn = sqlite3.connect("db.sql")
@@ -105,24 +114,21 @@ async def on_message(message):
                 await message.channel.send(embed=embedVar)
 
             elif int(amount) <= int(currentMoney) and int(amount) > 0:
-                flip = random.randint(0, 1)
-                if flip == 0:
-                    newMoney = int(currentMoney - amount)
-                    command = f"UPDATE userData SET money = '{newMoney}' WHERE id = '{discordId}'"
-                    embedVar = discord.Embed(title=f"LOSE - {message.author.nick}:",
-                                             color=discord.Color.from_rgb(235, 64, 52),
-                                             description=f"Balance: {newMoney}")
-                    await message.channel.send(embed=embedVar)
-
-
-                else:
+                if pick == flip:
                     newMoney = int(currentMoney + amount)
                     command = f"UPDATE userData SET money = '{newMoney}' WHERE id = '{discordId}'"
-                    embedVar = discord.Embed(title=f"WIN - {message.author.nick}:",
+                    embedVar = discord.Embed(title=f"{coin[flip]} - {message.author.nick}:",
                                              color=discord.Color.from_rgb(113, 235, 61),
                                              description=f"Balance: {newMoney}")
                     await message.channel.send(embed=embedVar)
+                else:
+                    newMoney = int(currentMoney - amount)
+                    command = f"UPDATE userData SET money = '{newMoney}' WHERE id = '{discordId}'"
 
+                    embedVar = discord.Embed(title=f"{coin[flip]} - {message.author.nick}:",
+                                             color=discord.Color.from_rgb(235, 64, 52),
+                                             description=f"Balance: {newMoney}")
+                    await message.channel.send(embed=embedVar)
                 cur.execute(command)
                 conn.commit()
 
@@ -190,4 +196,4 @@ def addMoney(discordId, streak, lastDaily):
     return [newMoney, moneyAdd]
 
 
-client.run('')
+client.run(key)
