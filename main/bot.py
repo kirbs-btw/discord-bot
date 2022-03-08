@@ -89,6 +89,10 @@ async def on_message(message):
 
     if re.search("^%flip", message.content):
         try:
+            nameUser = message.author.nick
+            if nameUser == None:
+                nameUser = message.author.name
+
             coin = ["HEAD", "TAIL"]
             flip = random.randint(0, 1)
             if "%flip head" in message.content:
@@ -110,14 +114,14 @@ async def on_message(message):
             if int(amount) > int(currentMoney):
                 embedVar = discord.Embed(title=f"Not enough money!",
                                          color=discord.Color.from_rgb(235, 64, 52),
-                                         description=f"Current balance = {currentMoney} : {message.author.nick}")
+                                         description=f"Current balance = {currentMoney} : {nameUser}")
                 await message.channel.send(embed=embedVar)
 
             elif int(amount) <= int(currentMoney) and int(amount) > 0:
                 if pick == flip:
                     newMoney = int(currentMoney + amount)
                     command = f"UPDATE userData SET money = '{newMoney}' WHERE id = '{discordId}'"
-                    embedVar = discord.Embed(title=f"{coin[flip]} - {message.author.nick}:",
+                    embedVar = discord.Embed(title=f"{coin[flip]} - {nameUser}:",
                                              color=discord.Color.from_rgb(113, 235, 61),
                                              description=f"Balance: {newMoney}")
                     await message.channel.send(embed=embedVar)
