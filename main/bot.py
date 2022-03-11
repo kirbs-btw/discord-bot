@@ -8,6 +8,8 @@ from key import *
 print("starting bot...")
 client = discord.Client()
 
+conn = sqlite3.connect("db.sql")
+cur = conn.cursor()
 
 @client.event
 async def on_ready():
@@ -31,16 +33,12 @@ async def on_message(message):
     if message.content == '%daily':
         streak_print = 0
 
-        conn = sqlite3.connect("db.sql")
-        cur = conn.cursor()
         command = "CREATE TABLE IF NOT EXISTS daily(discord_id INT, daily_streak INT, last_daily DATE)"
         cur.execute(command)
         conn.commit()
 
         discordId = message.author.id
 
-        conn = sqlite3.connect("db.sql")
-        cur = conn.cursor()
 
         today = datetime.date.today()
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
@@ -75,7 +73,6 @@ async def on_message(message):
             command = f"UPDATE daily SET daily_streak = '{streak}', last_daily = '{today}' WHERE discord_id = '{discordId}'"
             cur.execute(command)
             conn.commit()
-            conn.close()
 
         info = addMoney(discordId, streak_print, str(lastDaily))
 
@@ -103,9 +100,6 @@ async def on_message(message):
 
             amount = int(message.content[11::])
             discordId = message.author.id
-
-            conn = sqlite3.connect("db.sql")
-            cur = conn.cursor()
 
             command = f"SELECT * FROM userData WHERE id = '{discordId}'"
             userRow = cur.execute(command).fetchall()[0]
@@ -149,8 +143,6 @@ async def on_message(message):
 
     if message.content == "%bal":
         discordId = message.author.id
-        conn = sqlite3.connect("db.sql")
-        cur = conn.cursor()
 
         command = f"SELECT * FROM userData WHERE id = '{discordId}'"
         userRow = cur.execute(command).fetchall()[0]
@@ -170,9 +162,6 @@ def addMoney(discordId, streak, lastDaily):
 
     newMoney = 0
     moneyAdd = 0
-
-    conn = sqlite3.connect("db.sql")
-    cur = conn.cursor()
 
     command = f"SELECT * FROM userData WHERE id = '{discordId}'"
     userRow = cur.execute(command).fetchall()
@@ -198,6 +187,7 @@ def addMoney(discordId, streak, lastDaily):
         conn.commit()
 
     return [newMoney, moneyAdd]
+
 
 
 client.run(key)
